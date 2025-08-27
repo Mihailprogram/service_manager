@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Управление сервисом {{ service_name }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .active { background-color: #d4edda; color: #155724; }
+        .inactive { background-color: #f8d7da; color: #721c24; }
+        .buttons { margin: 20px 0; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-start { background-color: #28a745; color: white; }
+        .btn-stop { background-color: #dc3545; color: white; }
+        .btn-restart { background-color: #ffc107; color: black; }
+        .btn-disabled { opacity: 0.5; cursor: not-allowed; }
+        .access-control { margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>Управление сервисом: {{ service_name }}</h1>
+    
+    <div class="status {% if status == 'active' %}active{% else %}inactive{% endif %}">
+        Статус: <strong>{{ status }}</strong>
+    </div>
+    
+    <div class="access-control">
+        <label>
+            <input type="checkbox" id="accessToggle" {% if access_allowed %}checked{% endif %}>
+            Доступ разрешён
+        </label>
+    </div>
+    
+    <div class="buttons">
+        <button id="btnStart" class="btn-start {% if not access_allowed %}btn-disabled{% endif %}" 
+                {% if not access_allowed %}disabled{% endif %}>Запустить</button>
+        <button id="btnStop" class="btn-stop {% if not access_allowed %}btn-disabled{% endif %}" 
+                {% if not access_allowed %}disabled{% endif %}>Остановить</button>
+        <button id="btnRestart" class="btn-restart {% if not access_allowed %}btn-disabled{% endif %}" 
+                {% if not access_allowed %}disabled{% endif %}>Перезапустить</button>
+    </div>
+    
+    <div id="message"></div>
+
+    <div class="api-info">
+    <div class="api-title">📡 API Documentation</div>
+    <div style="margin-bottom: 20px;">
+        <a href="/swagger/" target="_blank" style="display: inline-block; 
+           background: #007bff; color: white; padding: 10px 15px; 
+           border-radius: 5px; text-decoration: none; margin-right: 10px;">
+            📖 Swagger UI
+        </a>
+        <a href="/redoc/" target="_blank" style="display: inline-block; 
+           background: #85ea2d; color: white; padding: 10px 15px; 
+           border-radius: 5px; text-decoration: none;">
+            📚 ReDoc
+        </a>
+    </div>
+    <!-- остальной код API endpoints -->
+</div>
+
+    <script>
+    document.getElementById('accessToggle').addEventListener('change', function() {
+        fetch('/api/toggle-access/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            location.reload();
+        });
+    });
+
+    document.getElementById('btnStart').addEventListener('click', () => controlService('start'));
+    document.getElementById('btnStop').addEventListener('click', () => controlService('stop'));
+    document.getElementById('btnRestart').addEventListener('click', () => controlService('restart'));
+
+    function controlService(action) {
+        if (!document.getElementById('accessToggle').checked) {
+            showMessage('Доступ запрещен. Разрешите доступ сначала.', 'error');
+            return;
+        }
+
+        fetch(`/api/control/${action}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            showMessage(data.message, data.status);
+            if (data.status === 'success') {
+                setTimeout(() => location.reload(), 1000);
+            }
+        });
+    }
+
+    // Остальные функции без изменений
+    function showMessage(text, type) {
+        const messageDiv = document.getElementById('message');
+        messageDiv.innerHTML = `<div class="status ${type === 'success' ? 'active' : 'inactive'}">${text}</div>`;
+        setTimeout(() => messageDiv.innerHTML = '', 3000);
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+</body>
+</html>
