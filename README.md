@@ -31,7 +31,7 @@
 
 ```bash
 # Клонирование репозитория
-git clone <your-repo-url>
+git clone https://github.com/Mihailprogram/service_manager.git
 cd service_manager
 
 # Создание виртуального окружения
